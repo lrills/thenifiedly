@@ -17,16 +17,16 @@ import thenifiedly from 'thenifiedly';
 const callWrite = thenifiedly.callMethodFactory('write');
 
 http.createServer(async (req, res) => {
-  const ghRes = await thenifiedly.call(
+  const githubRes = await thenifiedly.call(
     http.get,
     'https://github.com'
   );
   await callWrite(res, `GitHub is ${
-    ghRes.statusCode < 300 ? 'ok': 'down'
+    githubRes.statusCode < 300 ? 'ok': 'down'
   }! `);
-  ghRes.destroy();
+  githubRes.destroy();
 
-  await callMethod('end', res, 'Bye!');
+  await thenifiedly.callMethod('end', res, 'Bye!');
   console.log('Response Ended!');
 });
 ```
