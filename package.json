@@ -17,6 +17,17 @@
     "email": "zeldalink0515@gmail.com",
     "url": "https://github.com/lrills"
   },
+  "keywords": [
+    "promisify",
+    "thenify",
+    "promise",
+    "then",
+    "es6",
+    "async",
+    "await",
+    "async-await",
+    "callback"
+  ],
   "license": "MIT",
   "devDependencies": {
     "benchmark": "^2.1.4",
