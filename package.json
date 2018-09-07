@@ -1,0 +1,24 @@
+{
+  "name": "thenifiedly",
+  "version": "0.1.0",
+  "description": "Call a callback style function with es6 promise returned.",
+  "main": "thenifiedly.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "benchmark": "node ./benchmarks",
+    "test": "jest",
+    "prettier": "prettier *.js **/*.js --write --single-quote"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "benchmark": "^2.1.4",
+    "es6-promisify": "^6.0.0",
+    "jest": "^23.5.0",
+    "pify": "^4.0.0",
+    "thenify": "^3.3.0",
+    "thenify-all": "^1.6.0"
+  }
+}
