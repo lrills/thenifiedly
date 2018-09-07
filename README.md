@@ -15,8 +15,11 @@ http.createServer(async (req, res) => {
   );
   await callWrite(res, `GitHub is ${
     ghRes.statusCode < 300 ? 'ok': 'down'
-  }!`);
+  }! `);
+  ghRes.destroy();
+
   await callMethod('end', res, 'Bye!');
+  console.log('Response Ended!');
 });
 ```
 
@@ -35,7 +38,7 @@ Arguments to be passed to _fn_, except the most postceded callback.
 
 ```js
 async () => {
-  const stat = await thenifiedly.call(fs.stat, '/tmp/me');
+  const statOfMe = await thenifiedly.call(fs.stat, '/tmp/me');
 }
 ```
 
@@ -73,8 +76,8 @@ Arguments to be passed to method, except the postceded callback function.
 const callEnd = thenifiedly.callMethodFactory('end');
 
 http.createServer(async (req, res) => {
-  await callEnd(res, 'Hi!');
-  console.log('ENDED!');
+  await callEnd(res, 'Hello world!');
+  console.log('Finished!');
 });
 ```
 
