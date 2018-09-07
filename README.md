@@ -2,6 +2,14 @@
 
 Promisifiedly call a callback style function/method with an es6 promise returned.
 
+## Install
+
+```shell
+$ npm install thenifiedly
+```
+
+## Usage
+
 ```js
 import http from 'http';
 import thenifiedly from 'thenifiedly';
