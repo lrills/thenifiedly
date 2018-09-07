@@ -11,7 +11,11 @@
     "test": "jest",
     "prettier": "prettier *.js **/*.js --write --single-quote"
   },
-  "author": "",
+  "author": {
+    "name" : "Patrick Liu",
+    "email" : "zeldalink0515@gmail.com",
+    "url" : "https://github.com/lrills"
+  },
   "license": "MIT",
   "devDependencies": {
     "benchmark": "^2.1.4",
