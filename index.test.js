@@ -1,18 +1,7 @@
 const thenifiedly = require('./');
 
-test.each(['call', 'callMethod', 'callMethodFactory'])(
-  '%s is function',
-  prop => {
-    expect(typeof thenifiedly[prop]).toBe('function');
-  }
-);
-
-describe('callMethodFactory()', () => {
-  it('return wrapped function', () => {
-    const factory = thenifiedly.callMethodFactory('method');
-    expect(typeof factory).toBe('function');
-    expect(factory.name).toBe('thenifiedlyCallMethod');
-  });
+test.each(['call', 'callMethod'])('%s is function', prop => {
+  expect(typeof thenifiedly[prop]).toBe('function');
 });
 
 const fn = jest.fn();
@@ -29,13 +18,6 @@ const makeMethodCalls = () => [
   thenifiedly.callMethod('f', obj, 1, 2, 3)
 ];
 
-const thenifiedCallMethodF = thenifiedly.callMethodFactory('f');
-const makeFactoryCalls = () => [
-  thenifiedCallMethodF(obj),
-  thenifiedCallMethodF(obj, 'ABC'),
-  thenifiedCallMethodF(obj, 1, 2, 3)
-];
-
 beforeEach(() => {
   fn.mockReset();
   obj.f.mockReset();
@@ -43,8 +25,7 @@ beforeEach(() => {
 
 describe.each([
   ['call', makeFunctionCalls, fn],
-  ['callMethod', makeMethodCalls, obj.f],
-  ['callMethodFactory(method)', makeFactoryCalls, obj.f]
+  ['callMethod', makeMethodCalls, obj.f]
 ])('%s()', (tested, makeCalls, mockFn) => {
   it('return a Promise', () => {
     const promises = makeCalls();
@@ -54,13 +35,13 @@ describe.each([
   });
 
   it(`call function with ${
-    tested === 'call' ? 'null' : 'object passed'
-  } as this`, () => {
+    tested === 'call' ? 'undefined' : 'object passed'
+  } as this`, async () => {
     makeCalls();
 
     expect(mockFn).toHaveBeenCalledTimes(3);
     mockFn.mock.instances.forEach(instance => {
-      expect(instance).toBe(tested === 'call' ? null : obj);
+      expect(instance).toBe(tested === 'call' ? undefined : obj);
     });
   });
 
@@ -71,7 +52,6 @@ describe.each([
     mockFn.mock.calls.forEach(args => {
       const callback = args[args.length - 1];
       expect(typeof callback).toBe('function');
-      expect(callback.length).toBe(2);
     });
   });
 
@@ -95,7 +75,9 @@ describe.each([
 
     const promises = makeCalls();
 
-    await promises.map(promise => expect(promise).resolves.toBe(result));
+    await Promise.all(
+      promises.map(promise => expect(promise).resolves.toBe(result))
+    );
   });
 
   it('reject reason if callback return with error', async () => {
@@ -107,6 +89,8 @@ describe.each([
 
     const promises = makeCalls();
 
-    await promises.map(promise => expect(promise).rejects.toBe(error));
+    await Promise.all(
+      promises.map(promise => expect(promise).rejects.toBe(error))
+    );
   });
 });

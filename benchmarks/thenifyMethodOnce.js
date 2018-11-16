@@ -14,7 +14,6 @@ const suite = new Benchmark.Suite('promisify method once', {
 const obj = { fn };
 const pifiedObj = pify(obj);
 const thenifiedObj = thenifyAll(obj, {}, ['fn']);
-const callThenifiedMethod = thenifiedly.callMethodFactory('fn');
 
 console.log('### Test promisify method once:');
 suite
@@ -26,9 +25,6 @@ suite
   })
   .add('thenifiedly.callMethod', () => {
     thenifiedly.callMethod('fn', obj, 'a', 'b');
-  })
-  .add('thenifiedly.callMethodFactory', () => {
-    callThenifiedMethod(obj, 'a', 'b');
   })
   .on('cycle', event => {
     console.log('  ' + String(event.target));
