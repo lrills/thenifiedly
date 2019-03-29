@@ -14,28 +14,28 @@ $ npm install thenifiedly
 import http from 'http';
 import thenifiedly from 'thenifiedly';
 
-const callWrite = thenifiedly.callMethodFactory('write');
+const endRes = thenifiedly.callMethod.bind(null, 'end')
 
 http.createServer(async (req, res) => {
   const githubRes = await thenifiedly.call(
     http.get,
     'https://github.com'
   );
-  await callWrite(res, `GitHub is ${
+
+  await thenifiedly.callMethod('write', res, `GitHub is ${
     githubRes.statusCode < 300 ? 'ok': 'down'
   }! `);
-  githubRes.destroy();
 
-  await thenifiedly.callMethod('end', res, 'Bye!');
+  await endRes(res, 'Bye!');
   console.log('Response Ended!');
 });
 ```
 
-This is especially useful when the function/instance is from the parameters or returned dynamically. Thus you don't need to wrap it every time before use, and might gain small performance enhancement from it. Check [benchmark](#benchmark).
+This is especially useful when the function/instance to use comes from callback arguments or generated dynamically each time. So you don't need to wrap it every time before use, and might gain small performance enhancement from it. Check [benchmark](#benchmark).
 
 ## API
 
-### call: (fn, [...args]) ⇒ `Promise`
+### call: (fn[, ...args]) ⇒ `Promise`
 Call a callback style function with postceding arguments, return a promise.
 
 #### fn `Function`  
@@ -50,7 +50,7 @@ async () => {
 }
 ```
 
-### callMethod: (method, instance, [...args]) ⇒ `Promise`
+### callMethod: (method, instance[, ...args]) ⇒ `Promise`
 
 #### method `string|Symbol`
 The method name to be called on the _instance_ object.
@@ -64,29 +64,71 @@ Arguments to be passed to _method_, except the most postceded callback.
 ```js
 async () => {
   const worker = child_process.fork('some.js');
-  await thenifiedly.callMethod('send', worker, { do: 'a job' });
+  await thenifiedly.callMethod('send', worker, { do: 'a job' })
 }
 ```
 
-### callMethodFactory: (method) ⇒ (instance, [...args]) ⇒ `Promise`
-Make a method calling function with the method name specified.
+### tillEvent: (event, emitter) ⇒ `Promise`
+Return a promise which resolves once the specified event fired by the emitter.
 
-#### method `string|Symbol`
-The method name to be called on the _instance_ object.
+#### event `string`  
+The event name to be listened.
 
-#### instance `Object`
-The object contains the _method_ to be called.
-
-#### args `any[]`  
-Arguments to be passed to method, except the postceded callback function.
+#### emitter `EventEmitter`  
+A node _EventEmitter_ instance.
 
 ```js
-const callEnd = thenifiedly.callMethodFactory('end');
+async () => {
+  await thenifiedly.tillEvent('connect', db)
+}
+```
 
-http.createServer(async (req, res) => {
-  await callEnd(res, 'Hello world!');
-  console.log('Finished!');
-});
+### factory: (applier, options) ⇒ (...args) ⇒ `Promise`
+Factory function to generate promisify helper for any kind of callback function.
+
+#### applier: (callback, args) => void
+Function to make arrange of the callback function applying.
+
+##### callback: `Function`
+Callback created by factory, you should inject it while calling.
+
+##### args: `any[]`
+Parameters passed to your generated helper function when using.
+
+#### options `Object`
+
+##### options.mutipleValues `boolean`  
+Whether multiple values passed to the callback, an array of values would be resolved instead if set to true.
+Default to `false`.
+
+##### options.beginningError `boolean`  
+Whether callback arguments begins with the first arg as the error thrown. Default to `true`.
+
+##### options.promiseClass `boolean`  
+The promise constructor to `new` the promise with. Default to native `Promise`.
+
+```js
+function sumUntilEach(cb, ...nums) {
+  cb(
+    ...nums.reduce((arr, n) => {
+      const len = arr.length
+      const last = len === 0 ? 0 : arr[len - 1]
+      return arr.concat(last + n)
+    }, [])
+  )
+}
+
+const thenified = factory(
+  (cb, args) => {
+    sumUntilEach(cb, ...args)
+  }, {
+    mutipleValues: true,
+    beginningError: false,
+    promiseClass: MyPromise,
+  })
+
+await thenified(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+// [1, 3, 6, 10, 15, 21, 28, 36, 45, 55]
 ```
 
 ## Benchmark

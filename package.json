@@ -33,8 +33,14 @@
     "benchmark": "^2.1.4",
     "es6-promisify": "^6.0.0",
     "jest": "^23.5.0",
+    "moxy": "https://github.com/lrills/moxy/releases/download/v0.1.0-5/moxy.tar.gz",
     "pify": "^4.0.0",
     "thenify": "^3.3.0",
     "thenify-all": "^1.6.0"
+  },
+  "jest": {
+    "setupFiles": [
+      "<rootDir>/node_modules/moxy/lib/extends/jest.js"
+    ]
   }
 }

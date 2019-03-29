@@ -1,96 +1,271 @@
+const EventEmitter = require('events');
+const moxy = require('moxy').default;
 const thenifiedly = require('./');
 
-test.each(['call', 'callMethod'])('%s is function', prop => {
-  expect(typeof thenifiedly[prop]).toBe('function');
-});
+jest.useFakeTimers();
 
-const fn = jest.fn();
-const makeFunctionCalls = () => [
-  thenifiedly.call(fn),
-  thenifiedly.call(fn, 'ABC'),
-  thenifiedly.call(fn, 1, 2, 3)
-];
-
-const obj = { f: jest.fn() };
-const makeMethodCalls = () => [
-  thenifiedly.callMethod('f', obj),
-  thenifiedly.callMethod('f', obj, 'ABC'),
-  thenifiedly.callMethod('f', obj, 1, 2, 3)
-];
+const delay = n => new Promise(resolve => setTimeout(resolve, n));
+const resolvingSpy = moxy(x => x);
 
 beforeEach(() => {
-  fn.mockReset();
-  obj.f.mockReset();
+  resolvingSpy.mock.clear();
 });
 
-describe.each([
-  ['call', makeFunctionCalls, fn],
-  ['callMethod', makeMethodCalls, obj.f]
-])('%s()', (tested, makeCalls, mockFn) => {
-  it('return a Promise', () => {
-    const promises = makeCalls();
-    promises.forEach(promise => {
-      expect(promise instanceof Promise).toBe(true);
-    });
+describe('thenifiedly.factory(applier, options)(...args)', () => {
+  const applier = moxy();
+
+  beforeEach(() => {
+    applier.mock.clear();
   });
 
-  it(`call function with ${
-    tested === 'call' ? 'undefined' : 'object passed'
-  } as this`, async () => {
-    makeCalls();
+  it('resolve 2nd callback value by default', async () => {
+    const promise = thenifiedly
+      .factory(applier)('foo', 'bar', 'baz')
+      .then(resolvingSpy);
 
-    expect(mockFn).toHaveBeenCalledTimes(3);
-    mockFn.mock.instances.forEach(instance => {
-      expect(instance).toBe(tested === 'call' ? undefined : obj);
-    });
+    expect(promise).toBeInstanceOf(Promise);
+
+    jest.advanceTimersByTime(10);
+    expect(resolvingSpy.mock).not.toHaveBeenCalled();
+
+    expect(applier.mock).toHaveBeenCalledTimes(1);
+    const [callback, applyingArgs] = applier.mock.calls[0].args;
+    expect(applyingArgs).toEqual(['foo', 'bar', 'baz']);
+
+    callback(null, 'hello', 'world');
+    jest.runAllTimers();
+
+    await expect(promise).resolves.toBe('hello');
+    expect(resolvingSpy.mock).toHaveBeenCalled();
   });
 
-  it('call function with last argument as callback function', () => {
-    makeCalls();
+  it('rejects with 1st arg by default', async () => {
+    const promise = thenifiedly.factory(applier)('foo', 'bar', 'baz');
+    expect(promise).toBeInstanceOf(Promise);
 
-    expect(mockFn).toHaveBeenCalledTimes(3);
-    mockFn.mock.calls.forEach(args => {
-      const callback = args[args.length - 1];
-      expect(typeof callback).toBe('function');
-    });
+    jest.advanceTimersByTime(10);
+
+    expect(applier.mock).toHaveBeenCalledTimes(1);
+    const [callback, applyingArgs] = applier.mock.calls[0].args;
+    expect(applyingArgs).toEqual(['foo', 'bar', 'baz']);
+
+    callback('hello', 'world');
+    jest.runAllTimers();
+
+    await expect(promise).rejects.toBe('hello');
   });
 
-  it('call function with args given', () => {
-    makeCalls();
+  it('return promise instance of promiseClass', () => {
+    const MyPromise = moxy();
 
-    expect(mockFn.mock.calls[0].length).toBe(1);
+    expect(
+      thenifiedly.factory(applier, { promiseClass: MyPromise })('foo')
+    ).toBeInstanceOf(MyPromise);
 
-    expect(mockFn.mock.calls[1].length).toBe(2);
-    expect(mockFn.mock.calls[1][0]).toBe('ABC');
+    expect(
+      thenifiedly.factory(applier, {
+        mutipleValues: true,
+        beginningError: false,
+        promiseClass: MyPromise
+      })('foo')
+    ).toBeInstanceOf(MyPromise);
 
-    expect(mockFn.mock.calls[2].length).toBe(4);
-    expect(mockFn.mock.calls[2].slice(0, 3)).toEqual([1, 2, 3]);
+    expect(MyPromise.mock).toHaveBeenCalledTimes(2)
   });
 
-  it('resolve result if callback return with no error', async () => {
-    const result = { i: 'am result' };
-    mockFn.mockImplementation((...args) => {
-      args[args.length - 1](null, result);
+  describe.each`
+    multiVal | beginErr | callbackParams  | resolving | expectedValue
+    ${true}  | ${true}  | ${[null, 2, 3]} | ${true}   | ${[2, 3]}
+    ${true}  | ${true}  | ${[1, 2, 3]}    | ${false}  | ${1}
+    ${true}  | ${false} | ${[1, 2, 3]}    | ${true}   | ${[1, 2, 3]}
+    ${false} | ${true}  | ${[null, 2, 3]} | ${true}   | ${2}
+    ${false} | ${true}  | ${[1, 2, 3]}    | ${false}  | ${1}
+    ${false} | ${false} | ${[1, 2, 3]}    | ${true}   | ${1}
+  `(
+    'when { mutipleValues: $multiVal, beginningError: $beginErr }',
+    ({ multiVal, beginErr, callbackParams, resolving, expectedValue }) => {
+      const applier = moxy();
+
+      beforeEach(() => {
+        applier.mock.clear();
+      });
+
+      it(`${resolving ? 'resolves' : 'rejects'} as expected`, async () => {
+        const promise = thenifiedly
+          .factory(applier, {
+            mutipleValues: multiVal,
+            beginningError: beginErr
+          })('foo', 'bar', 'baz')
+          .then(resolvingSpy);
+
+        jest.advanceTimersByTime(10);
+        expect(resolvingSpy.mock).not.toHaveBeenCalled();
+
+        expect(applier.mock).toHaveBeenCalledTimes(1);
+        const [callback, applyingArgs] = applier.mock.calls[0].args;
+        expect(applyingArgs).toEqual(['foo', 'bar', 'baz']);
+
+        callback(...callbackParams);
+        jest.runAllTimers();
+
+        if (resolving) {
+          await expect(promise).resolves.toEqual(expectedValue);
+          expect(resolvingSpy.mock).toHaveBeenCalled();
+        } else {
+          await expect(promise).rejects.toEqual(expectedValue);
+        }
+      });
+    }
+  );
+});
+
+describe('thenifiedly.call(fn, ...args)', () => {
+  it('resolves value passed to callback', async () => {
+    const sumAsync = moxy((x, y, cb) => {
+      setTimeout(cb, 100, null, x + y);
     });
 
-    const promises = makeCalls();
+    const promise = thenifiedly.call(sumAsync, 1, 2).then(resolvingSpy);
 
-    await Promise.all(
-      promises.map(promise => expect(promise).resolves.toBe(result))
-    );
+    jest.advanceTimersByTime(50);
+    expect(resolvingSpy.mock).not.toHaveBeenCalled();
+    jest.runAllTimers();
+
+    await expect(promise).resolves.toBe(3);
+    expect(resolvingSpy.mock).toHaveBeenCalled();
+
+    expect(sumAsync.mock).toHaveBeenCalledTimes(1);
+    expect(sumAsync.mock).toHaveBeenCalledWith(1, 2, expect.any(Function));
   });
 
-  it('reject reason if callback return with error', async () => {
-    const result = { i: 'am result' };
-    const error = { i: 'am error' };
-    mockFn.mockImplementation((...args) => {
-      args[args.length - 1](error, result);
+  it('works with dynamic length function', async () => {
+    const sumAsync = moxy((...args) => {
+      const nums = args.slice(0, -1);
+      const cb = args[args.length - 1];
+
+      const sum = nums.reduce((a, b) => a + b);
+      setTimeout(cb, 100, null, sum);
     });
 
-    const promises = makeCalls();
+    const promise = thenifiedly.call(sumAsync, 1, 2, 3, 4).then(resolvingSpy);
 
-    await Promise.all(
-      promises.map(promise => expect(promise).rejects.toBe(error))
-    );
+    jest.advanceTimersByTime(50);
+    expect(resolvingSpy.mock).not.toHaveBeenCalled();
+    jest.runAllTimers();
+
+    await expect(promise).resolves.toBe(10);
+    expect(resolvingSpy.mock).toHaveBeenCalled();
+
+    const { mock } = sumAsync;
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(1, 2, 3, 4, expect.any(Function));
+  });
+
+  it('rejects with error passed to callback', async () => {
+    const sumAsync = moxy((x, y, cb) => {
+      setTimeout(cb, 100, new TypeError('nononono'));
+    });
+
+    const promise = thenifiedly.call(sumAsync, '1', '2').then(resolvingSpy);
+    jest.runAllTimers();
+
+    await expect(promise).rejects.toThrow(new TypeError('nononono'));
+    expect(resolvingSpy.mock).not.toHaveBeenCalled();
+
+    expect(sumAsync.mock).toHaveBeenCalledTimes(1);
+    expect(sumAsync.mock).toHaveBeenCalledWith('1', '2', expect.any(Function));
+  });
+});
+
+describe('thenifiedly.callMethod(method, instance, ...args)', () => {
+  it('resolves value passed to callback', async () => {
+    const instance = moxy({
+      sumAsync: (x, y, cb) => {
+        setTimeout(cb, 100, null, x + y);
+      }
+    });
+
+    const promise = thenifiedly
+      .callMethod('sumAsync', instance, 1, 2)
+      .then(resolvingSpy);
+
+    jest.advanceTimersByTime(50);
+    expect(resolvingSpy.mock).not.toHaveBeenCalled();
+    jest.runAllTimers();
+
+    await expect(promise).resolves.toBe(3);
+    expect(resolvingSpy.mock).toHaveBeenCalled();
+
+    const { mock } = instance.sumAsync;
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(1, 2, expect.any(Function));
+    expect(mock.calls[0].instance).toBe(instance);
+  });
+
+  it('works with dynamic length function', async () => {
+    const instance = moxy({
+      sumAsync: (...args) => {
+        const nums = args.slice(0, -1);
+        const cb = args[args.length - 1];
+
+        const sum = nums.reduce((a, b) => a + b);
+        setTimeout(cb, 10, null, sum);
+      }
+    });
+
+    const promise = thenifiedly
+      .callMethod('sumAsync', instance, 1, 2, 3, 4)
+      .then(resolvingSpy);
+
+    jest.advanceTimersByTime(50);
+    expect(resolvingSpy.mock).not.toHaveBeenCalled();
+    jest.runAllTimers();
+
+    await expect(promise).resolves.toBe(10);
+    expect(resolvingSpy.mock).toHaveBeenCalled();
+
+    const { mock } = instance.sumAsync;
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(1, 2, 3, 4, expect.any(Function));
+    expect(mock.calls[0].instance).toBe(instance);
+  });
+
+  it('rejects with error passed to callback', async () => {
+    const instance = moxy({
+      sumAsync: (x, y, cb) => {
+        setTimeout(cb, 100, new TypeError('nononono'));
+      }
+    });
+
+    const promise = thenifiedly
+      .callMethod('sumAsync', instance, '1', '2')
+      .then(resolvingSpy);
+    jest.runAllTimers();
+
+    await expect(promise).rejects.toThrow(new TypeError('nononono'));
+    expect(resolvingSpy.mock).not.toHaveBeenCalled();
+
+    const { mock } = instance.sumAsync;
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith('1', '2', expect.any(Function));
+    expect(mock.calls[0].instance).toBe(instance);
+  });
+});
+
+describe('thenifiedly.tillEvent(event, emitter)', () => {
+  it('resolves first arg of listner when event emited', async () => {
+    const emitter = new EventEmitter();
+
+    const promise = thenifiedly.tillEvent('foo', emitter).then(resolvingSpy);
+
+    jest.advanceTimersByTime(50);
+    expect(resolvingSpy.mock).not.toHaveBeenCalled();
+
+    emitter.emit('foo', 'bar', 'baz');
+    emitter.emit('foo', 'baz');
+    jest.runAllTimers();
+
+    await expect(promise).resolves.toBe('bar');
+    expect(resolvingSpy.mock).toHaveBeenCalled();
   });
 });
