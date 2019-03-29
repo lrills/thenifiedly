@@ -1,4 +1,4 @@
-require('./thenifyFunctionEveryTime');
-require('./thenifyFunctionOnce');
-require('./thenifyMethodEveryTime');
-require('./thenifyMethodOnce');
+require('./thenifyFunctionEveryTime')
+require('./thenifyFunctionOnce')
+require('./thenifyMethodEveryTime')
+require('./thenifyMethodOnce')

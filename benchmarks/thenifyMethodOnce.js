@@ -1,33 +1,33 @@
-const Benchmark = require('benchmark');
-const thenifyAll = require('thenify-all');
-const pify = require('pify');
-const thenifiedly = require('../');
+const Benchmark = require('benchmark')
+const thenifyAll = require('thenify-all')
+const pify = require('pify')
+const thenifiedly = require('../')
 
 const fn = (arg1, arg2, callback) => {
-  callback(null, arg1 + arg2);
-};
+  callback(null, arg1 + arg2)
+}
 
 const suite = new Benchmark.Suite('promisify method once', {
-  onError: console.error
-});
+  onError: console.error,
+})
 
-const obj = { fn };
-const pifiedObj = pify(obj);
-const thenifiedObj = thenifyAll(obj, {}, ['fn']);
+const obj = { fn }
+const pifiedObj = pify(obj)
+const thenifiedObj = thenifyAll(obj, {}, ['fn'])
 
-console.log('### Test promisify method once:');
+console.log('### Test promisify method once:')
 suite
   .add('thenify-all', () => {
-    thenifiedObj.fn('a', 'b');
+    thenifiedObj.fn('a', 'b')
   })
   .add('pify', () => {
-    pifiedObj.fn('a', 'b');
+    pifiedObj.fn('a', 'b')
   })
   .add('thenifiedly.callMethod', () => {
-    thenifiedly.callMethod('fn', obj, 'a', 'b');
+    thenifiedly.callMethod('fn', obj, 'a', 'b')
   })
   .on('cycle', event => {
-    console.log('  ' + String(event.target));
-  });
+    console.log('  ' + String(event.target))
+  })
 
-suite.run();
+suite.run()
