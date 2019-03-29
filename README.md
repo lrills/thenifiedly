@@ -89,22 +89,21 @@ Factory function to generate promisify helper for any kind of callback function.
 #### applier: (callback, args) => void
 Function to make arrange of the callback function applying.
 
-##### callback: `Function`
+#### - callback: `Function`
 Callback created by factory, you should inject it while calling.
 
-##### args: `any[]`
+#### - args: `any[]`
 Parameters passed to your generated helper function when using.
 
-#### options `Object`
-
-##### options.mutipleValues `boolean`  
+#### options: `Object`
+#### - options.mutipleValues: `boolean`
 Whether multiple values passed to the callback, an array of values would be resolved instead if set to true.
 Default to `false`.
 
-##### options.beginningError `boolean`  
+#### - options.beginningError: `boolean`
 Whether callback arguments begins with the first arg as the error thrown. Default to `true`.
 
-##### options.promiseClass `boolean`  
+#### - options.promiseClass: `boolean`
 The promise constructor to `new` the promise with. Default to native `Promise`.
 
 ```js
