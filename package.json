@@ -1,6 +1,6 @@
 {
   "name": "thenifiedly",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Call a callback style function with es6 promise returned.",
   "author": {
     "name": "Patrick Liu",
