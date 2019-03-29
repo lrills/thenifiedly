@@ -11,8 +11,8 @@ $ npm install thenifiedly
 ## Usage
 
 ```js
-import http from 'http';
-import thenifiedly from 'thenifiedly';
+import http from 'http'
+import thenifiedly from 'thenifiedly'
 
 const endRes = thenifiedly.callMethod.bind(null, 'end')
 
@@ -20,15 +20,15 @@ http.createServer(async (req, res) => {
   const githubRes = await thenifiedly.call(
     http.get,
     'https://github.com'
-  );
+  )
 
   await thenifiedly.callMethod('write', res, `GitHub is ${
     githubRes.statusCode < 300 ? 'ok': 'down'
-  }! `);
+  }! `)
 
-  await endRes(res, 'Bye!');
-  console.log('Response Ended!');
-});
+  await endRes(res, 'Bye!')
+  console.log('Response Ended!')
+})
 ```
 
 This is especially useful when the function/instance to use comes from callback arguments or generated dynamically each time. So you don't need to wrap it every time before use, and might gain small performance enhancement from it. Check [benchmark](#benchmark).
@@ -46,7 +46,7 @@ Arguments to be passed to _fn_, except the most postceded callback.
 
 ```js
 async () => {
-  const statOfMe = await thenifiedly.call(fs.stat, '/tmp/me');
+  const statOfMe = await thenifiedly.call(fs.stat, '/tmp/me')
 }
 ```
 
@@ -63,7 +63,7 @@ Arguments to be passed to _method_, except the most postceded callback.
 
 ```js
 async () => {
-  const worker = child_process.fork('some.js');
+  const worker = child_process.fork('some.js')
   await thenifiedly.callMethod('send', worker, { do: 'a job' })
 }
 ```
@@ -108,7 +108,7 @@ Whether callback arguments begins with the first arg as the error thrown. Defaul
 The promise constructor to `new` the promise with. Default to native `Promise`.
 
 ```js
-function sumUntilEach(cb, ...nums) {
+function sumUntilEach(cb, ...nums) {
   cb(
     ...nums.reduce((arr, n) => {
       const len = arr.length
@@ -118,16 +118,16 @@ function sumUntilEach(cb, ...nums) {
   )
 }
 
-const thenified = factory(
+const thenified = factory(
   (cb, args) => {
-    sumUntilEach(cb, ...args)
+    sumUntilEach(cb, ...args)
   }, {
     mutipleValues: true,
     beginningError: false,
     promiseClass: MyPromise,
   })
 
-await thenified(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+await thenified(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 // [1, 3, 6, 10, 15, 21, 28, 36, 45, 55]
 ```
 
