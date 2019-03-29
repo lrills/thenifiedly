@@ -2,20 +2,24 @@
   "name": "thenifiedly",
   "version": "0.1.0",
   "description": "Call a callback style function with es6 promise returned.",
-  "main": "thenifiedly.js",
+  "author": {
+    "name": "Patrick Liu",
+    "email": "zeldalink0515@gmail.com",
+    "url": "https://github.com/lrills"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lrills/thenifiedly"
+  },
   "files": [
-    "index.js"
+    "index.js",
+    "README.md"
   ],
   "scripts": {
     "benchmark": "node ./benchmarks",
     "test": "jest",
     "prettier": "prettier *.js **/*.js --write --single-quote",
-    "prepublish": "npm test"
-  },
-  "author": {
-    "name": "Patrick Liu",
-    "email": "zeldalink0515@gmail.com",
-    "url": "https://github.com/lrills"
+    "prepublishOnly": "npm test"
   },
   "keywords": [
     "promisify",
